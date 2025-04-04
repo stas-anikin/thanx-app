@@ -1,8 +1,16 @@
 FactoryBot.define do
   factory :redemption do
-    user { nil }
-    reward { nil }
-    points_spent { 1 }
-    status { "MyString" }
+    association :user, factory: [ :user, :with_points ]
+    reward
+    points_spent { nil }
+    status { "pending" }
+
+    trait :completed do
+      status { "completed" }
+    end
+
+    trait :cancelled do
+      status { "cancelled" }
+    end
   end
 end

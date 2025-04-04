@@ -1,8 +1,16 @@
 FactoryBot.define do
   factory :reward do
-    name { "MyString" }
-    description { "MyText" }
-    points_cost { 1 }
-    is_active { false }
+    sequence(:name) { |n| "Reward #{n}" }
+    description { "A fantastic reward" }
+    points_cost { 100 }
+    is_active { true }
+
+    trait :inactive do
+      is_active { false }
+    end
+
+    trait :expensive do
+      points_cost { 5000 }
+    end
   end
 end
