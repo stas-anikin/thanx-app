@@ -1,0 +1,134 @@
+#!/usr/bin/env ruby
+require 'net/http'
+require 'json'
+require 'uri'
+
+class ApiTester
+  BASE_URL = 'http://localhost:3000'
+  
+  def run_tests
+    puts "=== Testing API ==="
+    test_users
+    test_rewards
+    test_redemptions
+    puts "=== Testing complete ==="
+  end
+
+  private
+
+  def test_users
+    puts "\n=== Users API ==="
+    user_id = create_user
+    get_users
+    get_user(user_id)
+    get_points_balance(user_id)
+    add_points(user_id)
+  end
+
+  def test_rewards
+    puts "\n=== Rewards API ==="
+    get_rewards
+    reward_id = get_rewards[0]['id']
+    get_reward(reward_id)
+  end
+
+  def test_redemptions
+    puts "\n=== Redemptions API ==="
+    user_id = get_users[0]['id']
+    reward_id = get_rewards[0]['id']
+    redemption_id = create_redemption(user_id, reward_id)
+    get_redemption(redemption_id)
+    cancel_redemption(redemption_id)
+  end
+
+  def create_user
+    puts "Creating user..."
+    response = post('/api/v1/users', { user: { email: "test-#{Time.now.to_i}@example.com" } })
+    response['id']
+  end
+
+  def get_users
+    puts "Getting all users..."
+    get('/api/v1/users')
+  end
+
+  def get_user(id)
+    puts "Getting user #{id}..."
+    get("/api/v1/users/#{id}")
+  end
+
+  def get_points_balance(id)
+    puts "Getting points balance for user #{id}..."
+    get("/api/v1/users/#{id}/points_balance")
+  end
+
+  def add_points(id)
+    puts "Adding points to user #{id}..."
+    patch("/api/v1/users/#{id}/add_points", { amount: 100 })
+  end
+
+  def get_rewards
+    puts "Getting all rewards..."
+    get('/api/v1/rewards')
+  end
+
+  def get_reward(id)
+    puts "Getting reward #{id}..."
+    get("/api/v1/rewards/#{id}")
+  end
+
+  def create_redemption(user_id, reward_id)
+    puts "Creating redemption for user #{user_id} and reward #{reward_id}..."
+    response = post('/api/v1/redemptions', { redemption: { user_id: user_id, reward_id: reward_id } })
+    response['id']
+  end
+
+  def get_redemption(id)
+    puts "Getting redemption #{id}..."
+    get("/api/v1/redemptions/#{id}")
+  end
+
+  def cancel_redemption(id)
+    puts "Cancelling redemption #{id}..."
+    patch("/api/v1/redemptions/#{id}/cancel")
+  end
+
+  def get(path)
+    request(:get, path)
+  end
+
+  def post(path, body = nil)
+    request(:post, path, body)
+  end
+
+  def patch(path, body = nil)
+    request(:patch, path, body)
+  end
+
+  def request(method, path, body = nil)
+    uri = URI("#{BASE_URL}#{path}")
+    
+    http = Net::HTTP.new(uri.host, uri.port)
+    
+    req = case method
+    when :get
+      Net::HTTP::Get.new(uri)
+    when :post
+      Net::HTTP::Post.new(uri)
+    when :patch
+      Net::HTTP::Patch.new(uri)
+    end
+    
+    req['Content-Type'] = 'application/json'
+    req.body = body.to_json if body
+    
+    response = http.request(req)
+    
+    puts "#{method.to_s.upcase} #{path}: #{response.code}"
+    body = JSON.parse(response.body) rescue response.body
+    puts "Response: #{body}"
+    body
+  end
+end
+
+ApiTester.new.run_tests
